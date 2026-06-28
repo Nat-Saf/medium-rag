@@ -17,8 +17,11 @@ treat these as settled decisions for this repo.
   the chunk text itself — that's what feeds both the LLM and the API `context` field.
 - Pinecone is not a document store; it returns the metadata you put in. There is no
   separate "fetch the article" step.
-- `retrieve()` must **dedupe by article_id** so "list 3 articles" yields 3 distinct
-  articles, not 3 chunks of one.
+- `retrieve()` caps chunks per article (`MAX_PER_ARTICLE`, default 3) and returns up to
+  `TOP_K` chunks. It does NOT collapse to one chunk per article: summary / precise-fact /
+  recommendation questions need MULTIPLE chunks of the SAME article, while the cap still
+  leaves room for several distinct articles so "list 3" works. Distinct-listing is also
+  reinforced by the system prompt.
 
 ## Models
 - `ZYRANGG-text-embedding-3-small` = OpenAI text-embedding-3-small, 1536-d output.

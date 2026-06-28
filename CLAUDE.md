@@ -26,7 +26,7 @@ Two runtimes:
 - `lib/embed.py` — the ONLY file that calls LLMod **embeddings**.
 - `lib/llm.py` — the ONLY file that calls LLMod **chat** (gpt-5-mini).
 - `lib/db.py` — the ONLY file that touches **Pinecone** (ensure_index / upsert / query).
-- `lib/retrieve.py` — orchestrates embed + db.query + dedupe-by-article. No direct SDK calls.
+- `lib/retrieve.py` — orchestrates embed + db.query + per-article capping. No direct SDK calls.
 - `lib/prompt_builder.py` — pure functions: builds system + user prompt. Imports
   SYSTEM_PROMPT from config. No network.
 - `ingest.py` — offline entry point.
@@ -49,10 +49,13 @@ the required text verbatim plus a short style note.
 `GET /api/stats` returns exactly `{"chunk_size":int,"overlap_ratio":float,"top_k":int}`
 (read straight from `config.as_stats()`).
 
-## "List 3 distinct articles" rule
-Pinecone returns chunks; several may belong to one article. `retrieve.py` dedupes by
-`article_id` and returns one chunk per article. If a question needs N distinct articles
-and fewer come back, query a larger `top_k`.
+## Retrieval: cap per article, do NOT collapse to one
+Pinecone returns chunks; several may belong to one article. `retrieve.py` keeps at most
+`MAX_PER_ARTICLE` (default 3) chunks per article and returns up to `TOP_K` chunks total.
+This keeps DEPTH for single-article questions (summary / precise fact / recommendation
+want multiple chunks of the SAME article) while keeping BREADTH so "list 3 distinct
+articles" still works. Never dedupe down to one chunk per article — that breaks summaries.
+The system prompt instructs the model to return distinct articles for listing questions.
 
 ## Conventions
 - Python, OpenAI SDK pointed at `LLMOD_BASE_URL`, `pinecone` client.

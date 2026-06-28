@@ -16,9 +16,11 @@ EMBED_DIM   = 1536                 # must match the Pinecone index dimension
 # ---- RAG hyperparameters (reported verbatim by GET /api/stats) ----
 CHUNK_SIZE    = 512                # tokens, hard cap 1024
 OVERLAP_RATIO = 0.15               # 0.0 .. 0.3
-TOP_K         = 6                  # 1 .. 30
+TOP_K         = 8                  # 1 .. 30 (context chunks returned to the LLM)
 
 # ---- Ingestion controls ----
+MAX_PER_ARTICLE = 3                # cap chunks per article in retrieval (depth vs breadth)
+
 NUM_ROWS    = 50                   # how many CSV rows to embed. None = full corpus.
 EMBED_BATCH = 128                  # chunks per LLMod embeddings call (batching is required)
 
