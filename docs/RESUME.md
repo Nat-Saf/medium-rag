@@ -11,12 +11,18 @@ contract shape; the nonsense question returns the exact refusal string; `/api/st
 returns `{"chunk_size":512,"overlap_ratio":0.15,"top_k":8}`. Verified by curling the
 live deployment (commit 817767a).
 
-Phases 0–4 done + deployed. Remaining: **Phase 5 (optional param tuning)** and
-**Phase 6 (full-corpus embed)** — see below.
+Phases 0–4 done + deployed. **Phase 6 (full-corpus embed) IN PROGRESS** —
+`NUM_ROWS=None`, running `python ingest.py` to embed all ~7,600 articles (~30k
+chunks, ~$0.30). After it completes: verify the index count, then run the 20-case
+test suite against the live URL and produce a scored report (coverage vs tuning).
 
-Pinecone index `medium-rag`: dimension 1536, cosine, **3273 vectors**
-(first **1000** articles embedded; `NUM_ROWS=1000`, CHUNK_SIZE=512, OVERLAP=0.15).
-KEEP THE INDEX ACTIVE until graded.
+Pinecone index `medium-rag`: dimension 1536, cosine, CHUNK_SIZE=512, OVERLAP=0.15.
+Was 3273 vectors at 1000 rows; full embed grows it to ~30k. KEEP INDEX ACTIVE until
+graded. NUM_ROWS is now None (full corpus) — the deployed API reads live from
+Pinecone, so scaling needs NO redeploy.
+
+Submission deliverable: `Medium_RAG_Submission.docx` (1-page; live URL + GitHub URL
+at top, work summary below).
 
 ## Since the last commit
 - **Added `scripts/ask.py`** — end-to-end driver (question → retrieve → build_messages

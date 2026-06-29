@@ -24,7 +24,7 @@ TOP_K         = 8                  # 1 .. 30 (context chunks returned to the LLM
 # ---- Ingestion controls ----
 MAX_PER_ARTICLE = 3                # cap chunks per article in retrieval (depth vs breadth)
 
-NUM_ROWS    = 1000                 # how many CSV rows to embed. None = full corpus.
+NUM_ROWS    = None                 # how many CSV rows to embed. None = full corpus.
 EMBED_BATCH = 128                  # chunks per LLMod embeddings call (batching is required)
 
 # ---- Pinecone ----
