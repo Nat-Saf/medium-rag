@@ -4,10 +4,15 @@ Pick-up-here checklist for continuing the Medium RAG build on another machine.
 Last updated: 2026-06-29.
 
 ## Status
-**Phase 3 (end-to-end generation) — DONE.** The full RAG path works:
-`retrieve → build_messages → generate` via `scripts/ask.py`. Validated on the four
-assignment example questions + one off-topic guardrail question. Next up is
-**Phase 4 (API handlers)**.
+**Phase 4 (API handlers) — VERIFIED locally.** `api/prompt.py` and `api/stats.py`
+were exercised against a faithful local Python server (the real handler logic; no
+Node/vercel needed) and both match the required contract exactly:
+- `POST /api/prompt` → top-level keys `{response, context, Augmented_prompt}`;
+  `context[]` = 8 items each EXACTLY `{article_id, title, chunk, score}` (authors/url
+  used in the prompt but NOT leaked into context); `Augmented_prompt = {System, User}`.
+- `GET /api/stats` → `{"chunk_size":512,"overlap_ratio":0.15,"top_k":8}`.
+
+Next up: **import the repo to Vercel** (deploy on the current subset, deploy-then-scale).
 
 Pinecone index `medium-rag`: dimension 1536, cosine, **3273 vectors**
 (first **1000** articles embedded; `NUM_ROWS=1000`, CHUNK_SIZE=512, OVERLAP=0.15).
@@ -28,19 +33,22 @@ Pinecone index `medium-rag`: dimension 1536, cosine, **3273 vectors**
   were in Pinecone metadata but `retrieve()` dropped them, so "provide the author"
   questions failed. Now carried through to the prompt; Q1/Q3/Q4 return real authors.
 
-## To resume (next: Phase 4 — API handlers)
+## To resume (next: import to Vercel)
 1. `git pull`; `pip install -r requirements.txt`; `.env` at repo root with
    `LLMOD_API_KEY`, `LLMOD_BASE_URL`, `PINECONE_API_KEY`, `CSV_PATH` (NBUECSE-scoped
    key). Provide `medium-english-50mb.csv` (gitignored). Vectors already live.
 2. Sanity-check anytime: `python scripts/ask.py "your question"` (add `--context` to
    see retrieved titles), or `python scripts/eval_retrieval.py` for retrieval-only.
-3. Build/verify `api/prompt.py` and `api/stats.py`:
-   - `/api/prompt` response `context[]` must emit EXACTLY
-     `{article_id, title, chunk, score}` — `retrieve()` now also returns `authors`
-     and `url`, so the handler must pick only those four fields (don't leak the rest).
-   - `Augmented_prompt` = the `(System, User)` from `build_messages()`.
-   - `/api/stats` returns exactly `config.as_stats()` → `{chunk_size, overlap_ratio,
-     top_k}`.
+3. Local API smoke test without Node/vercel: a faithful runner pattern serves the
+   real handlers on http://127.0.0.1:3000 (see scratchpad `local_api.py` from the
+   Phase 4 session). PowerShell + curl.exe: write the JSON body to a file and POST
+   with `--data "@body.json"` (PS 5.1 strips inline embedded quotes).
+4. **Import to Vercel** (dashboard → Add New Project → import Nat-Saf/medium-rag):
+   - Framework preset "Other", no build command; `vercel.json` ships `lib/**`.
+   - Set env vars in the dashboard BEFORE deploy: `LLMOD_API_KEY`, `LLMOD_BASE_URL`,
+     `PINECONE_API_KEY`. Do NOT set CSV_PATH / upload the CSV (online API doesn't
+     need it). Secrets are NOT in git — they must be entered in Vercel.
+   - After deploy, re-run the curl tests against the live URL.
 
 ## After Phase 4
 - Phase 5: tune params — chunk_size/overlap need re-embed (finalize on subset first);
