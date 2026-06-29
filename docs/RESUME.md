@@ -66,12 +66,14 @@ Pinecone index `medium-rag`: dimension 1536, cosine, **3273 vectors**
 
 ## Known issues already diagnosed
 0. **FIXED:** Vercel build failed with "No python entrypoint found in default
-   locations" (CLI 54.x). The new Python builder imports each `api/*.py` module to
-   detect the `handler` variable; our top-level `lib` imports (-> openai/pinecone)
-   broke that step. Fix: defer the `lib` imports INTO the request methods so the
-   modules are stdlib-only at detection time (`api/prompt.py`, `api/stats.py`). If
-   it ever recurs, fallback is legacy `builds: [{src:"api/*.py", use:"@vercel/python",
-   config:{includeFiles:"lib/**"}}]` in vercel.json.
+   locations, but found potential entrypoints: api/prompt.py / api/stats.py"
+   (CLI 54.x). Real cause: the new zero-config Python builder won't auto-route TWO
+   `/api` handler files as separate functions — it wants a single app entrypoint.
+   (Deferring the `lib` imports did NOT help — the builder finds `handler` via static
+   analysis, not import.) Fix: force the classic builder in `vercel.json` via
+   `builds: [{src:"api/*.py", use:"@vercel/python", config:{includeFiles:"lib/**"}}]`,
+   which natively supports the multi-file /api convention. The deferred `lib` imports
+   were kept (harmless, fine under either builder).
 1. **FIXED:** `csv.field_size_limit(sys.maxsize)` OverflowError on Windows; `ingest.py`
    steps the limit down to the largest accepted value.
 2. **Not hit on a personal laptop:** corporate TLS interception can cause

@@ -1,7 +1,9 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": {
-    "api/prompt.py": { "includeFiles": "lib/**" },
-    "api/stats.py":  { "includeFiles": "lib/**" }
-  }
+  "builds": [
+    {
+      "src": "api/*.py",
+      "use": "@vercel/python",
+      "config": { "includeFiles": "lib/**" }
+    }
+  ]
 }
