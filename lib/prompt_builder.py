@@ -15,8 +15,9 @@ def _format_context(context):
     for i, m in enumerate(context, 1):
         title = m.get("title", "") or "(untitled)"
         aid = m.get("article_id", "")
+        authors = m.get("authors", "") or "(unknown)"
         chunk = (m.get("chunk", "") or "").strip()
-        blocks.append(f"[{i}] article_id={aid} | title: {title}\n{chunk}")
+        blocks.append(f"[{i}] article_id={aid} | title: {title} | authors: {authors}\n{chunk}")
     return "\n\n".join(blocks)
 
 

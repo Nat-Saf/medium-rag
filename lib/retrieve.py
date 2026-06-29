@@ -28,6 +28,7 @@ def retrieve(question, top_k=None, max_per_article=None):
             continue                               # cap per article; don't drop to 1
         counts[aid] = counts.get(aid, 0) + 1
         out.append({"article_id": aid, "title": md.get("title", ""),
+                    "authors": md.get("authors", ""), "url": md.get("url", ""),
                     "chunk": md.get("chunk", ""), "score": m["score"]})
         if len(out) >= top_k:
             break

@@ -24,7 +24,7 @@ TOP_K         = 8                  # 1 .. 30 (context chunks returned to the LLM
 # ---- Ingestion controls ----
 MAX_PER_ARTICLE = 3                # cap chunks per article in retrieval (depth vs breadth)
 
-NUM_ROWS    = 50                   # how many CSV rows to embed. None = full corpus.
+NUM_ROWS    = 1000                 # how many CSV rows to embed. None = full corpus.
 EMBED_BATCH = 128                  # chunks per LLMod embeddings call (batching is required)
 
 # ---- Pinecone ----
@@ -41,7 +41,12 @@ SYSTEM_PROMPT = (
     "the given context, quoting or paraphrasing the relevant article passage or "
     "metadata when helpful.\n\n"
     "Be concise. When asked to list articles, return distinct articles. When asked for "
-    "a title and/or author, return exactly those fields."
+    "a title and/or author, return exactly those fields. If — and only if — the "
+    "retrieved context contains nothing that answers the question, reply with exactly "
+    "this sentence and nothing else, with no preamble and no explanation: \"I don't "
+    "know based on the provided Medium articles data.\" Whenever you can answer even "
+    "partially from the context, just answer and explain — never prepend that sentence "
+    "to an answer you are giving."
 )
 
 # ---- Secrets: read from env (.env locally, Vercel env vars in prod) ----

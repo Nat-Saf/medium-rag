@@ -4,58 +4,68 @@ Pick-up-here checklist for continuing the Medium RAG build on another machine.
 Last updated: 2026-06-29.
 
 ## Status
-**Phase 1 (offline ingest) — DONE and verified.** A 50-row subset is embedded and
-live in Pinecone. The full pipeline (CSV → chunk → batch-embed → upsert) runs
-end-to-end. Next up is **Phase 2 (retrieval eval)**.
+**Phase 3 (end-to-end generation) — DONE.** The full RAG path works:
+`retrieve → build_messages → generate` via `scripts/ask.py`. Validated on the four
+assignment example questions + one off-topic guardrail question. Next up is
+**Phase 4 (API handlers)**.
 
-Pinecone index `medium-rag`: dimension 1536, cosine, **160 vectors** (50 rows →
-160 chunks at CHUNK_SIZE=512 / OVERLAP_RATIO=0.15).
+Pinecone index `medium-rag`: dimension 1536, cosine, **3273 vectors**
+(first **1000** articles embedded; `NUM_ROWS=1000`, CHUNK_SIZE=512, OVERLAP=0.15).
 
 ## Since the last commit
-- **Model namespace fixed.** Our LLMod key is provisioned for the `NBUECSE-*`
-  namespace; the assignment PDF's `ZYRANGG-*` is only a template placeholder (a
-  `ZYRANGG-*` call returns `403 key_model_access_denied`). Updated `EMBED_MODEL` /
-  `CHAT_MODEL` in `lib/config.py` to `NBUECSE-*`, and noted the reason in
-  `CLAUDE.md` and `DESIGN_NOTES.md`.
-- **Ran Phase 1 ingest** on this machine: 50 rows → 160 chunks → 160 vectors
-  upserted; verified via `describe_index_stats`.
-- **Added the `session-resume` project skill** (`.claude/skills/session-resume/`)
-  that keeps this file current before every commit.
+- **Added `scripts/ask.py`** — end-to-end driver (question → retrieve → build_messages
+  → generate → print answer). Self-contained; forces UTF-8 stdout (Windows cp1252
+  mangles curly quotes/em-dashes when printing, though stored data is clean).
+- **Scaled the index 50 → 200 → 1000 rows** and re-ran retrieval eval at each step.
+  Findings: Q1 (marketing) robust at rank 1 everywhere; Q4 (habits) strong once
+  dedicated habit articles appeared; Q3 (pandemics) recall improved but precision
+  diluted by COVID near-matches (LLM still picks the right one); Q2 (education) stays
+  weak — this corpus is genuinely thin on education, likely needs full corpus.
+- **SYSTEM_PROMPT clarification (`lib/config.py`)** — emit the exact "I don't know…"
+  sentence ONLY when nothing answers; never prefix it to a real answer. Fixed false
+  refusals on Q1/Q2 and made the nonsense question return the exact string verbatim.
+- **Author/url passthrough (`lib/retrieve.py` + `lib/prompt_builder.py`)** — authors
+  were in Pinecone metadata but `retrieve()` dropped them, so "provide the author"
+  questions failed. Now carried through to the prompt; Q1/Q3/Q4 return real authors.
 
-## To resume (next: Phase 2 — retrieval eval)
-1. `git pull`, then `pip install -r requirements.txt` (if a fresh machine).
-2. Ensure `.env` exists at repo root (gitignored) with `LLMOD_API_KEY`,
-   `LLMOD_BASE_URL`, `PINECONE_API_KEY`, `CSV_PATH`. Use a key with `NBUECSE-*`
-   access. Provide `medium-english-50mb.csv` at the repo root (gitignored, ~50 MB).
-3. Vectors are already live (no need to re-run ingest unless the index was cleared).
-   Run the retrieval eval — retrieval only, no chat model, no extra cost:
-   ```
-   python scripts/eval_retrieval.py
-   ```
-   It prints score / title / snippet per example question. Judge whether the
-   retrieved chunks are actually relevant before wiring up generation.
+## To resume (next: Phase 4 — API handlers)
+1. `git pull`; `pip install -r requirements.txt`; `.env` at repo root with
+   `LLMOD_API_KEY`, `LLMOD_BASE_URL`, `PINECONE_API_KEY`, `CSV_PATH` (NBUECSE-scoped
+   key). Provide `medium-english-50mb.csv` (gitignored). Vectors already live.
+2. Sanity-check anytime: `python scripts/ask.py "your question"` (add `--context` to
+   see retrieved titles), or `python scripts/eval_retrieval.py` for retrieval-only.
+3. Build/verify `api/prompt.py` and `api/stats.py`:
+   - `/api/prompt` response `context[]` must emit EXACTLY
+     `{article_id, title, chunk, score}` — `retrieve()` now also returns `authors`
+     and `url`, so the handler must pick only those four fields (don't leak the rest).
+   - `Augmented_prompt` = the `(System, User)` from `build_messages()`.
+   - `/api/stats` returns exactly `config.as_stats()` → `{chunk_size, overlap_ratio,
+     top_k}`.
 
-## After Phase 2
-- Phase 3: exercise the chat model (`NBUECSE-gpt-5-mini`) via `lib/llm.py` +
-  `lib/prompt_builder.py`.
-- Phase 4: the API handlers (`api/prompt.py`, `api/stats.py`).
-- Phase 5: tune params — chunk_size/overlap need re-embed (finalize on 50 rows
-  first); top_k/max_per_article are query-time only (free to change).
-- Phase 6: deploy to Vercel on the 50-row index, verify the live API, THEN run the
+## After Phase 4
+- Phase 5: tune params — chunk_size/overlap need re-embed (finalize on subset first);
+  top_k/max_per_article are query-time only (free to change).
+- Phase 6: deploy to Vercel on the current subset, verify the live API, THEN run the
   full embed once (`NUM_ROWS=None`, ~$0.30). Deploy-then-scale.
 
+## Open notes / decisions
+- **Q2 "Return only the titles"** — model still appends an explanation (the required
+  "Always explain" clause vs. "only titles"). Soft style issue; left as-is for now.
+- **Budget:** cumulative embeds still well under ~$0.15 of the $5. The full-corpus
+  embed (~$0.30) is the one big spend, saved for deploy time.
+- `article_id` = 0-based CSV data-record index (`excel_row = article_id + 2`). Verify
+  retrieval by title/URL, not spreadsheet row number.
+
 ## Known issues already diagnosed
-1. **FIXED (in repo):** `csv.field_size_limit(sys.maxsize)` threw `OverflowError` on
-   Windows; `ingest.py` steps the limit down to the largest accepted value.
-2. **NOT hit on a personal laptop:** on a TLS-inspecting corporate network the first
-   Pinecone/LLMod HTTPS call can fail with `CERTIFICATE_VERIFY_FAILED`. Fix if it
-   recurs: `pip install truststore` + `truststore.inject_into_ssl()` at the top of
-   `lib/config.py`.
+1. **FIXED:** `csv.field_size_limit(sys.maxsize)` OverflowError on Windows; `ingest.py`
+   steps the limit down to the largest accepted value.
+2. **Not hit on a personal laptop:** corporate TLS interception can cause
+   `CERTIFICATE_VERIFY_FAILED` on the first Pinecone/LLMod call. Fix if it recurs:
+   `pip install truststore` + `truststore.inject_into_ssl()` atop `lib/config.py`.
 
 ## Hard constraints (from CLAUDE.md / DESIGN_NOTES.md / assignment PDF)
-- chunk_size ≤ 1024, overlap_ratio ≤ 0.3, top_k ≤ 30. Total spend budget $5; embed
-  in batches (never one chunk per call).
-- All model calls go through the LLMod API (OpenAI SDK pointed at `LLMOD_BASE_URL`);
-  models are `NBUECSE-text-embedding-3-small` (1536-d) and `NBUECSE-gpt-5-mini`.
-  (PDF shows `ZYRANGG-*` as a placeholder — do NOT use it; our key needs `NBUECSE-*`.)
+- chunk_size ≤ 1024, overlap_ratio ≤ 0.3, top_k ≤ 30. Budget $5; embed in batches.
+- Models go through LLMod (OpenAI SDK at `LLMOD_BASE_URL`):
+  `NBUECSE-text-embedding-3-small` (1536-d) and `NBUECSE-gpt-5-mini`. The PDF's
+  `ZYRANGG-*` is a placeholder — do NOT use it; our key needs `NBUECSE-*`.
 - Never commit secrets or the CSV.
