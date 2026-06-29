@@ -9,8 +9,11 @@ so prompt_builder.py imports it instead of hard-coding it.
 import os
 
 # ---- LLMod model names ----
-EMBED_MODEL = "ZYRANGG-text-embedding-3-small"
-CHAT_MODEL  = "ZYRANGG-gpt-5-mini"
+# NBUECSE-* is THIS account's provisioned namespace. The assignment PDF shows
+# ZYRANGG-* as a template placeholder; each key is scoped to its own prefix, and
+# our key (the 403 it returns) only allows NBUECSE-*. Same underlying models.
+EMBED_MODEL = "NBUECSE-text-embedding-3-small"
+CHAT_MODEL  = "NBUECSE-gpt-5-mini"
 EMBED_DIM   = 1536                 # must match the Pinecone index dimension
 
 # ---- RAG hyperparameters (reported verbatim by GET /api/stats) ----

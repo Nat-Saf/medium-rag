@@ -16,8 +16,10 @@ Two runtimes:
 - `chunk_size` ≤ 1024 tokens, `overlap_ratio` ≤ 0.3, `top_k` ≤ 30.
 - Total spend budget is **$5**. Embed in **batches**, never one chunk per call.
   Validate on a small `NUM_ROWS` subset before scaling to the full corpus.
-- Embedding model: `ZYRANGG-text-embedding-3-small` (1536 dims).
-  Chat model: `ZYRANGG-gpt-5-mini`.
+- Embedding model: `NBUECSE-text-embedding-3-small` (1536 dims).
+  Chat model: `NBUECSE-gpt-5-mini`.
+  (The assignment PDF lists `ZYRANGG-*` as a template placeholder; our provisioned
+  key is scoped to the `NBUECSE-*` namespace — same underlying models.)
 
 ## Module boundaries (keep these clean)
 - `lib/config.py` — the ONLY place hyperparameters, model names, the index name, and the

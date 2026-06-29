@@ -24,8 +24,11 @@ treat these as settled decisions for this repo.
   reinforced by the system prompt.
 
 ## Models
-- `ZYRANGG-text-embedding-3-small` = OpenAI text-embedding-3-small, 1536-d output.
-- `ZYRANGG-gpt-5-mini` = OpenAI gpt-5-mini (cost-efficient chat tier).
+- `NBUECSE-text-embedding-3-small` = OpenAI text-embedding-3-small, 1536-d output.
+- `NBUECSE-gpt-5-mini` = OpenAI gpt-5-mini (cost-efficient chat tier).
+- The model prefix is a per-key namespace. The assignment PDF shows `ZYRANGG-*`
+  as a template; our key is provisioned for `NBUECSE-*` (a `ZYRANGG-*` call returns
+  403 key_model_access_denied). The underlying models are identical.
 - OpenAI does not publish parameter counts for either; do not assert a number.
 
 ## System vs user prompt
