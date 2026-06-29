@@ -73,7 +73,10 @@ Pinecone index `medium-rag`: dimension 1536, cosine, **3273 vectors**
    analysis, not import.) Fix: force the classic builder in `vercel.json` via
    `builds: [{src:"api/*.py", use:"@vercel/python", config:{includeFiles:"lib/**"}}]`,
    which natively supports the multi-file /api convention. The deferred `lib` imports
-   were kept (harmless, fine under either builder).
+   were kept (harmless, fine under either builder). NOTE: legacy `builds` serves the
+   functions WITH the `.py` extension and does not auto-strip it, so clean URLs 404 —
+   add a `routes` block mapping `/api/prompt`->`/api/prompt.py` and `/api/stats`->
+   `/api/stats.py`. Functions themselves verified working (stats.py returned 200).
 1. **FIXED:** `csv.field_size_limit(sys.maxsize)` OverflowError on Windows; `ingest.py`
    steps the limit down to the largest accepted value.
 2. **Not hit on a personal laptop:** corporate TLS interception can cause
