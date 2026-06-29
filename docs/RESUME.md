@@ -4,18 +4,19 @@ Pick-up-here checklist for continuing the Medium RAG build on another machine.
 Last updated: 2026-06-29.
 
 ## Status
-**Phase 4 (API handlers) — VERIFIED locally.** `api/prompt.py` and `api/stats.py`
-were exercised against a faithful local Python server (the real handler logic; no
-Node/vercel needed) and both match the required contract exactly:
-- `POST /api/prompt` → top-level keys `{response, context, Augmented_prompt}`;
-  `context[]` = 8 items each EXACTLY `{article_id, title, chunk, score}` (authors/url
-  used in the prompt but NOT leaked into context); `Augmented_prompt = {System, User}`.
-- `GET /api/stats` → `{"chunk_size":512,"overlap_ratio":0.15,"top_k":8}`.
+**DEPLOYED & LIVE on Vercel — verified end-to-end.** Live URL:
+**https://medium-rag-gvot.vercel.app** (`POST /api/prompt`, `GET /api/stats`).
+All 4 assignment questions return the correct article + author with the exact
+contract shape; the nonsense question returns the exact refusal string; `/api/stats`
+returns `{"chunk_size":512,"overlap_ratio":0.15,"top_k":8}`. Verified by curling the
+live deployment (commit 817767a).
 
-Next up: **import the repo to Vercel** (deploy on the current subset, deploy-then-scale).
+Phases 0–4 done + deployed. Remaining: **Phase 5 (optional param tuning)** and
+**Phase 6 (full-corpus embed)** — see below.
 
 Pinecone index `medium-rag`: dimension 1536, cosine, **3273 vectors**
 (first **1000** articles embedded; `NUM_ROWS=1000`, CHUNK_SIZE=512, OVERLAP=0.15).
+KEEP THE INDEX ACTIVE until graded.
 
 ## Since the last commit
 - **Added `scripts/ask.py`** — end-to-end driver (question → retrieve → build_messages
@@ -50,11 +51,21 @@ Pinecone index `medium-rag`: dimension 1536, cosine, **3273 vectors**
      need it). Secrets are NOT in git — they must be entered in Vercel.
    - After deploy, re-run the curl tests against the live URL.
 
-## After Phase 4
-- Phase 5: tune params — chunk_size/overlap need re-embed (finalize on subset first);
-  top_k/max_per_article are query-time only (free to change).
-- Phase 6: deploy to Vercel on the current subset, verify the live API, THEN run the
-  full embed once (`NUM_ROWS=None`, ~$0.30). Deploy-then-scale.
+## Remaining work
+- Phase 5 (optional): tune params — chunk_size/overlap need re-embed (finalize on
+  subset first); top_k/max_per_article are query-time only (free to change). If you
+  change top_k/overlap, /api/stats reflects it automatically; push to redeploy.
+- Phase 6 (final, the one big spend): run the full-corpus embed once locally with
+  `NUM_ROWS=None` (~$0.30). The LIVE API reads from Pinecone, so scaling needs NO
+  redeploy — new vectors appear to the deployed app automatically. This is what makes
+  Q2 (education) and the precise pandemic article land better.
+
+## Vercel deploy config (how it actually works — do not regress)
+- `vercel.json` uses legacy `builds` (`@vercel/python`, includeFiles=lib/**) PLUS a
+  `routes` block mapping `/api/prompt`->`/api/prompt.py`, `/api/stats`->`/api/stats.py`.
+  The modern zero-config builder does NOT work here (rejects 2 api handler files).
+- Env vars (LLMOD_API_KEY, LLMOD_BASE_URL, PINECONE_API_KEY) are set in the Vercel
+  dashboard (NBUECSE-scoped key). Every push to main auto-redeploys.
 
 ## Open notes / decisions
 - **Q2 "Return only the titles"** — model still appends an explanation (the required
