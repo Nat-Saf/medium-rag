@@ -65,6 +65,13 @@ Pinecone index `medium-rag`: dimension 1536, cosine, **3273 vectors**
   retrieval by title/URL, not spreadsheet row number.
 
 ## Known issues already diagnosed
+0. **FIXED:** Vercel build failed with "No python entrypoint found in default
+   locations" (CLI 54.x). The new Python builder imports each `api/*.py` module to
+   detect the `handler` variable; our top-level `lib` imports (-> openai/pinecone)
+   broke that step. Fix: defer the `lib` imports INTO the request methods so the
+   modules are stdlib-only at detection time (`api/prompt.py`, `api/stats.py`). If
+   it ever recurs, fallback is legacy `builds: [{src:"api/*.py", use:"@vercel/python",
+   config:{includeFiles:"lib/**"}}]` in vercel.json.
 1. **FIXED:** `csv.field_size_limit(sys.maxsize)` OverflowError on Windows; `ingest.py`
    steps the limit down to the largest accepted value.
 2. **Not hit on a personal laptop:** corporate TLS interception can cause

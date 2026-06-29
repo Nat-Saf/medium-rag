@@ -11,13 +11,19 @@ from http.server import BaseHTTPRequestHandler
 # (vercel.json ships lib/ via includeFiles — see CLAUDE.md "Vercel gotcha")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from lib.retrieve import retrieve
-from lib.prompt_builder import build_messages
-from lib.llm import generate
+# NOTE: lib imports are deferred into handle_question (not module top level).
+# Vercel's Python builder imports this module to detect the `handler` variable;
+# importing lib (-> openai, pinecone) at top level fails that detection step and
+# yields "No python entrypoint found". Importing at request time keeps the module
+# stdlib-only for detection while lib (shipped via includeFiles) loads at runtime.
 
 
 def handle_question(question):
     """Shared logic -> the JSON-able response dict (per the API contract)."""
+    from lib.retrieve import retrieve
+    from lib.prompt_builder import build_messages
+    from lib.llm import generate
+
     context = retrieve(question)
     system, user = build_messages(question, context)
     answer = generate(system, user)

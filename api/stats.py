@@ -4,11 +4,13 @@ from http.server import BaseHTTPRequestHandler
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from lib import config
+# lib import deferred into do_GET so this module is stdlib-only at Vercel's
+# entrypoint-detection step (see api/prompt.py for the full rationale).
 
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        from lib import config
         data = json.dumps(config.as_stats()).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
