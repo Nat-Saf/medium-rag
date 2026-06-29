@@ -11,15 +11,21 @@ contract shape; the nonsense question returns the exact refusal string; `/api/st
 returns `{"chunk_size":512,"overlap_ratio":0.15,"top_k":8}`. Verified by curling the
 live deployment (commit 817767a).
 
-Phases 0–4 done + deployed. **Phase 6 (full-corpus embed) IN PROGRESS** —
-`NUM_ROWS=None`, running `python ingest.py` to embed all ~7,600 articles (~30k
-chunks, ~$0.30). After it completes: verify the index count, then run the 20-case
-test suite against the live URL and produce a scored report (coverage vs tuning).
+**PROJECT COMPLETE.** All phases done: full corpus embedded, deployed, and
+validated. No parameter tuning needed — params are final.
 
-Pinecone index `medium-rag`: dimension 1536, cosine, CHUNK_SIZE=512, OVERLAP=0.15.
-Was 3273 vectors at 1000 rows; full embed grows it to ~30k. KEEP INDEX ACTIVE until
-graded. NUM_ROWS is now None (full corpus) — the deployed API reads live from
-Pinecone, so scaling needs NO redeploy.
+Pinecone index `medium-rag`: dimension 1536, cosine, CHUNK_SIZE=512, OVERLAP=0.15,
+**26,507 vectors (full ~7,600-article corpus)**. KEEP INDEX ACTIVE until graded.
+NUM_ROWS=None. The deployed API reads live from Pinecone (scaling needs no redeploy).
+
+### Final validation (20-case suite vs the live URL, full corpus)
+- Precise fact (title+author): 6/6 ✅ · Listing 3 distinct: 4/4 ✅ · Summary: 4/4 ✅
+  · Recommendation: 4/4 ✅ · Refusal exact-string: 1/2 (both refused correctly; one
+  explained instead of emitting the exact sentence — guardrail held, no outside
+  knowledge leaked). 19/20 clean.
+- Decision: leave the refusal wording as-is (tightening risks over-refusal on valid
+  partial answers). Params (512 / 0.15 / top_k 8 / max_per_article 3) are FINAL — no
+  re-embed.
 
 Submission deliverable: `Medium_RAG_Submission.docx` (1-page; live URL + GitHub URL
 at top, work summary below).
