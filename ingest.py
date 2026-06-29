@@ -1,7 +1,15 @@
 """Offline pipeline: CSV -> chunk -> batch-embed -> upsert to Pinecone. Run once locally."""
 import csv, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-csv.field_size_limit(sys.maxsize)
+
+# csv.field_size_limit(sys.maxsize) overflows the C long on Windows; step down to the largest accepted value.
+_limit = sys.maxsize
+while True:
+    try:
+        csv.field_size_limit(_limit)
+        break
+    except OverflowError:
+        _limit //= 10
 
 from dotenv import load_dotenv
 load_dotenv()
